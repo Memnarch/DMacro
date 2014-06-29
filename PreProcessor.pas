@@ -13,7 +13,7 @@ type
     function GetEmptyString(ACount: Integer): string;
     function GetEmptyLines(ACount: Integer): string;
     function GetTokenContent(AToken: TToken): string;
-    function GetTokenLineOffset(AToken: TToken): Integer;
+    function GetRelativeTokenLineOffset(AToken: TToken): Integer;
     function ProcessToken(ALexer: TLexer; AToken: TToken; var ALinePosition, ALastLine: Integer): string;
     function IsMacro(AToken: TToken): Boolean;
     function TryGetMacro(const AName: string; var AMacro: TMacro): Boolean;
@@ -73,15 +73,15 @@ begin
   end;
 end;
 
-function TPreProcessor.GetTokenLineOffset(AToken: TToken): Integer;
+function TPreProcessor.GetRelativeTokenLineOffset(AToken: TToken): Integer;
 begin
   if AToken.IsType(ttCharLiteral) then
   begin
-    Result := AToken.LineOffset - 1;
+    Result := AToken.RelativeLineOffset - 1;
   end
   else
   begin
-    Result := AToken.LineOffset;
+    Result := AToken.RelativeLineOffset;
   end;
 end;
 
@@ -200,6 +200,7 @@ begin
           LToken.FollowedByNewLine := LLexer.PeekToken.FollowedByNewLine;
           LToken.FoundInLine := LLexer.PeekToken.FoundInLine;
           LToken.LineOffset := LLexer.PeekToken.LineOffset;
+          LToken.RelativeLineOffset := LLexer.PeekToken.RelativeLineOffset;
           Result := Result + ProcessToken(LLexer, LToken, LLinePosition, LLastLine);
         finally
           LToken.Free;
@@ -219,15 +220,15 @@ end;
 function TPreProcessor.ProcessToken(ALexer: TLexer; AToken: TToken; var ALinePosition, ALastLine: Integer): string;
 var
   LContent, LOutput: string;
-  LOffset, LPositionOffset: Integer;
   LMacro: TMacro;
   LParameters: TStringList;
+  LRelativeOffset: Integer;
 begin
   LContent := GetTokenContent(AToken);
-  LOffset := GetTokenLineOffset(AToken);
-  LPositionOffset := LOffset - ALinePosition;
+  LRelativeOffset := GetRelativeTokenLineOffset(AToken);
+//  LPositionOffset := LOffset - ALinePosition;
   LOutput := GetEmptyLines(AToken.FoundInLine - ALastLine - 1);
-  LOutput := LOutput + GetEmptyString(LPositionOffset);
+  LOutput := LOutput + GetEmptyString(LRelativeOffset);
   if IsMacro(AToken) then
   begin
     LParameters := TStringList.Create();
@@ -244,7 +245,7 @@ begin
     LOutput := LOutput + LContent;
   end;
 
-  ALinePosition := LOffset + Length(LContent);
+  ALinePosition := ALinePosition + LRelativeOffset + Length(LContent);
   ALastLine := AToken.FoundInLine;
   if AToken.FollowedByNewLine then
   begin

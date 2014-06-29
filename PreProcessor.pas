@@ -10,6 +10,9 @@ type
   TPreProcessor = class
   private
     FMacros: TObjectList<TMacro>;
+    FWorkingDir: string;
+    FNameSpace: string;
+    FCounter: Cardinal;
     function GetEmptyString(ACount: Integer): string;
     function GetEmptyLines(ACount: Integer): string;
     function GetTokenContent(AToken: TToken): string;
@@ -37,6 +40,7 @@ constructor TPreProcessor.Create;
 begin
   inherited;
   FMacros := TObjectList<TMacro>.Create();
+  FCounter := 0;
 end;
 
 destructor TPreProcessor.Destroy;
@@ -145,6 +149,8 @@ var
   LFile: TStringList;
   LLastLine: Integer;
 begin
+  FWorkingDir := ExtractFilePath(AName);
+  FNameSpace := ChangeFileExt(ExtractFileName(AName), '');
   LLexer := TLexer.Create();
   try
     LOutput := '';
@@ -173,9 +179,10 @@ function TPreProcessor.ProcessMacro(AMacro: TMacro;
   AParameters: TStringList): string;
 var
   LLexer: TLexer;
-  LContent: string;
+  LContent, LName: string;
   LIndex, LLinePosition, LLastLine: Integer;
   LToken: TToken;
+  LFile: TStringList;
 begin
   Result := '';
   if AParameters.Count <> AMacro.Parameters.Count then
@@ -212,6 +219,19 @@ begin
     end;
   finally
     LLexer.Free;
+  end;
+  if AMacro.AddAsExternal then
+  begin
+    LFile := TStringList.Create();
+    try
+      LFile.Text := Result;
+      LName := FNameSpace + '_' + AMacro.Name + '_' + IntToHex(FCounter, 8) + '.inc';
+      Inc(FCounter);
+      LFile.SaveToFile(IncludeTrailingPathDelimiter(FWorkingDir) + LName);
+      Result := '{$i ''' + LName + ''' }';
+    finally
+      LFile.Free;
+    end;
   end;
 end;
 

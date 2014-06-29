@@ -117,7 +117,6 @@ begin
         begin
           AParameters.Add(LParameter);
         end;
-        ALexer.GetToken();
         Break;
       end;
 
@@ -233,6 +232,7 @@ begin
     LParameters := TStringList.Create();
     try
       TryGetMacro(AToken.Content, LMacro);
+      ALexer.GetToken();
       ParseParameters(ALexer, LParameters);
       LOutput := LOutput + ProcessMacro(LMacro, LParameters);
     finally

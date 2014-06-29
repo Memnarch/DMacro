@@ -143,7 +143,6 @@ var
   LLexer: TLexer;
   LOutput: string;
   LLinePosition: Integer;
-  LToken: TToken;
   LFile: TStringList;
   LLastLine: Integer;
 begin
@@ -156,8 +155,8 @@ begin
     LLexer.LoadFromFile(AName);
     while not LLexer.EOF do
     begin
-      LToken := LLexer.GetToken();
-      LOutput := LOutput + ProcessToken(LLexer, LToken, LLinePosition, LLastLine);
+      LOutput := LOutput + ProcessToken(LLexer, LLexer.PeekToken, LLinePosition, LLastLine);
+      LLexer.GetToken();
     end;
     LFile := TStringList.Create();
     try
@@ -229,7 +228,7 @@ begin
 //  LPositionOffset := LOffset - ALinePosition;
   LOutput := GetEmptyLines(AToken.FoundInLine - ALastLine - 1);
   LOutput := LOutput + GetEmptyString(LRelativeOffset);
-  if IsMacro(AToken) then
+  if (not ALexer.PreviousToken.IsContent('.')) and IsMacro(AToken) then
   begin
     LParameters := TStringList.Create();
     try
